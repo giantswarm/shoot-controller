@@ -1,11 +1,11 @@
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/giantswarm/{APP-NAME}/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/giantswarm/{APP-NAME}/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/giantswarm/shoot-controller/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/giantswarm/shoot-controller/tree/main)
 
 [Guide about how to manage an app on Giant Swarm](https://handbook.giantswarm.io/docs/dev-and-releng/app-developer-processes/adding_app_to_appcatalog/)
 
-# {APP-NAME} chart
+# shoot-controller chart
 
-Giant Swarm offers a {APP-NAME} App which can be installed in workload clusters.
-Here, we define the {APP-NAME} chart with its templates and default configuration.
+Giant Swarm offers a shoot-controller App which can be installed in workload clusters.
+Here, we define the shoot-controller chart with its templates and default configuration.
 
 **What is this app?**
 
