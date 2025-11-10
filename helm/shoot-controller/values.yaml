@@ -1,12 +1,26 @@
-# This file is a Helm values file for the shoot-controller chart.
-#
-# To learn more about how to configure your app on your cluster
-# and override the default values in here, visit:
-#
-#   https://docs.giantswarm.io/tutorials/fleet-management/app-platform/app-configuration/#basic-values-merging-example
-#
 image:
+  registry: gsoci.azurecr.io
   name: "giantswarm/shoot-controller"
   tag: ""
-registry:
-  domain: gsoci.azurecr.io
+  pullPolicy: IfNotPresent
+
+# App platform catalog to use when deploying shoot
+catalogName: "default"
+# shoot chart version to deploy
+shootVersion: "1.1.2"
+
+# Add seccomp to pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Add seccomp to container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop:
+      - ALL
