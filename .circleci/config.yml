@@ -5,18 +5,18 @@ orbs:
 workflows:
   build:
     jobs:
-    - architect/go-build:
-        name: go-build
-        binary: shoot-controller
-        filters:
-          tags:
-            only: /^v.*/
+#    - architect/go-build:
+#        name: go-build
+#        binary: shoot-controller
+#        filters:
+#          tags:
+#            only: /^v.*/
 
     - architect/push-to-registries:
         context: architect
         name: push-to-registries
-        requires:
-          - go-build
+#        requires:
+#          - go-build
         filters:
           tags:
             only: /^v.*/
