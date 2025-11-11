@@ -217,7 +217,7 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 			},
 		},
 		"install": map[string]interface{}{
-			"createNamespace": true,
+			"createNamespace": false,
 			"remediation": map[string]interface{}{
 				"retries": -1,
 			},
