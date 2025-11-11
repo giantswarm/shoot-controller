@@ -4,11 +4,10 @@ name: shoot-controller
 description: Kubernetes controller to deploy the shoot agent
 home: https://github.com/giantswarm/shoot-controller
 icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.png
-
 sources:
-- https://github.com/giantswarm/shoot-controller
-- https://github.com/giantswarm/shoot
-version: 0.0.0-dev
+  - https://github.com/giantswarm/shoot-controller
+  - https://github.com/giantswarm/shoot
+version: 0.1.0
 keywords:
   - ai
   - troubleshooting
