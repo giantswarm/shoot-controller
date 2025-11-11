@@ -222,16 +222,12 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 				"retries": -1,
 			},
 		},
-		"interval": "5m",
-		"kubeConfig": map[string]interface{}{
-			"secretRef": map[string]interface{}{
-				"name": clusterID + "-kubeconfig",
-			},
-		},
-		"releaseName":      clusterID + "-shoot",
-		"storageNamespace": orgNamespace,
-		"targetNamespace":  orgNamespace,
-		"timeout":          "15m",
+		"interval":           "5m",
+		"serviceAccountName": "automation",
+		"releaseName":        clusterID + "-shoot",
+		"storageNamespace":   orgNamespace,
+		"targetNamespace":    orgNamespace,
+		"timeout":            "15m",
 		"upgrade": map[string]interface{}{
 			"remediation": map[string]interface{}{
 				"retries": -1,
