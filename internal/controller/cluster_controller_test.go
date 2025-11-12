@@ -512,6 +512,23 @@ var _ = Describe("Cluster Controller", func() {
 			if err != nil {
 				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
 			}
+
+			// Clean up any leftover clusters from previous tests
+			cluster := &unstructured.Unstructured{}
+			cluster.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   clusterAPIGroup,
+				Version: clusterAPIVersion,
+				Kind:    clusterKind,
+			})
+			cluster.SetName(testClusterID)
+			cluster.SetNamespace(testOrgNamespace)
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, cluster))
+
+			// Wait for cluster to be fully deleted
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: testClusterID, Namespace: testOrgNamespace}, cluster)
+				return err != nil
+			}, "10s").Should(BeTrue())
 		})
 
 		It("should build HelmRelease with correct structure", func() {
