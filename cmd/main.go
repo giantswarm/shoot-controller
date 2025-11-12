@@ -97,6 +97,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Read OpenAI API key from environment variable
+	openAIAPIKey := os.Getenv("OPENAI_API_KEY")
+	if openAIAPIKey == "" {
+		setupLog.Error(nil, "OPENAI_API_KEY environment variable is required")
+		os.Exit(1)
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
@@ -195,6 +202,7 @@ func main() {
 		Scheme:       mgr.GetScheme(),
 		ShootVersion: shootVersion,
 		CatalogName:  catalogName,
+		OpenAIAPIKey: openAIAPIKey,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)

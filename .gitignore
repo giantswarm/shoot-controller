@@ -1,2 +1,5 @@
 vendor
 .vendir*
+bin/*
+cover.out
+coverprofile.out

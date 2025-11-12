@@ -32,6 +32,12 @@ spec:
           image: "{{ .Values.image.registry }}/{{ .Values.image.name }}:{{ default .Chart.Version .Values.image.tag }}"
           command:
             - /manager
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "resource.default.name" . }}-openai
+                  key: openaiAPIKey
           args:
             - --leader-elect
             - --catalog-name={{ .Values.catalogName }}

@@ -24,3 +24,6 @@ securityContext:
   capabilities:
     drop:
       - ALL
+
+# OpenAI API key
+openaiAPIKey: ""
