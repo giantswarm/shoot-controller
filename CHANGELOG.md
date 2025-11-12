@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Add the delete verb in the RBAC rules for secrets. The controller needs delete permission on secrets because it's setting an owner reference with `controller: true` on the secret.
+
 ## [0.3.0] - 2025-11-12
 
 ### Added
