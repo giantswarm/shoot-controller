@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Create OpenAI API key secret in the reconciled Cluster namespace. This secret will be used by shoot to talk to OpenAI API.
+
 ## [0.2.1] - 2025-11-11
 
 ### Changed
