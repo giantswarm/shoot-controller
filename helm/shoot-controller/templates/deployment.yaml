@@ -42,7 +42,6 @@ spec:
             - --leader-elect
             - --catalog-name={{ .Values.catalogName }}
             - --shoot-version={{ .Values.shootVersion }}
-            - --openai-api-key=$(OPENAI_API_KEY)
           securityContext:
             {{- with .Values.securityContext }}
               {{- . | toYaml | nindent 12 }}

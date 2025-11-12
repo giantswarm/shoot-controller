@@ -61,7 +61,6 @@ func main() {
 	var enableHTTP2 bool
 	var shootVersion string
 	var catalogName string
-	var openAIAPIKey string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -82,7 +81,6 @@ func main() {
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	flag.StringVar(&shootVersion, "shoot-version", "", "Version of the shoot chart to deploy (required)")
 	flag.StringVar(&catalogName, "catalog-name", "", "Catalog name for HelmRepository reference (required)")
-	flag.StringVar(&openAIAPIKey, "openai-api-key", "", "OpenAI API key (required)")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -98,8 +96,11 @@ func main() {
 		setupLog.Error(nil, "catalog-name flag is required")
 		os.Exit(1)
 	}
+
+	// Read OpenAI API key from environment variable
+	openAIAPIKey := os.Getenv("OPENAI_API_KEY")
 	if openAIAPIKey == "" {
-		setupLog.Error(nil, "openai-api-key flag is required")
+		setupLog.Error(nil, "OPENAI_API_KEY environment variable is required")
 		os.Exit(1)
 	}
 
