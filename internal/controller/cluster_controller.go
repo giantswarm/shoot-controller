@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -47,11 +49,13 @@ type ClusterReconciler struct {
 	Scheme       *runtime.Scheme
 	ShootVersion string
 	CatalogName  string
+	OpenAIAPIKey string
 }
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 
 // Reconcile will create the HelmRelease CR to deploy shoot
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -139,6 +143,48 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, cluster *unstru
 			"namespace", helmRelease.GetNamespace(),
 			"cluster", cluster.GetName())
 	}
+
+	// Create or update OpenAI API key secret using CreateOrUpdate
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openai-api-key",
+			Namespace: cluster.GetNamespace(),
+		},
+	}
+
+	operationResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		// Set labels
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
+		secret.Labels["app.kubernetes.io/managed-by"] = "shoot-controller"
+		secret.Labels["giantswarm.io/cluster"] = cluster.GetName()
+
+		// Set secret type and data
+		secret.Type = corev1.SecretTypeOpaque
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		secret.Data["OPENAI_API_KEY"] = []byte(r.OpenAIAPIKey)
+
+		// Set owner reference for automatic garbage collection
+		return r.setSecretOwnerReference(secret, cluster)
+	})
+
+	if err != nil {
+		log.Error(err, "Failed to create or update OpenAI API key secret",
+			"secret", secret.Name,
+			"namespace", secret.Namespace,
+			"cluster", cluster.GetName())
+		return ctrl.Result{}, fmt.Errorf("failed to create or update OpenAI API key secret %s/%s for Cluster %s: %w",
+			secret.Namespace, secret.Name, cluster.GetName(), err)
+	}
+
+	log.Info("Reconciled OpenAI API key secret",
+		"secret", secret.Name,
+		"namespace", secret.Namespace,
+		"cluster", cluster.GetName(),
+		"operation", operationResult)
 
 	return ctrl.Result{}, nil
 }
@@ -309,6 +355,32 @@ func (r *ClusterReconciler) setOwnerReference(helmRelease, cluster *unstructured
 	ownerRefs = append(ownerRefs, ownerRefMap)
 	unstructured.SetNestedSlice(helmRelease.Object, ownerRefs, "metadata", "ownerReferences")
 
+	return nil
+}
+
+// setSecretOwnerReference sets the owner reference on a Secret pointing to the Cluster
+func (r *ClusterReconciler) setSecretOwnerReference(secret *corev1.Secret, cluster *unstructured.Unstructured) error {
+	// Get Cluster UID
+	clusterUID, found, err := unstructured.NestedString(cluster.Object, "metadata", "uid")
+	if err != nil {
+		return fmt.Errorf("error accessing cluster UID: %w", err)
+	}
+	if !found || clusterUID == "" {
+		return fmt.Errorf("cluster has no UID (may not be persisted yet)")
+	}
+
+	clusterAPIVersionStr := clusterAPIGroup + "/" + clusterAPIVersion
+
+	// Create owner reference
+	ownerRef := metav1.OwnerReference{
+		APIVersion: clusterAPIVersionStr,
+		Kind:       clusterKind,
+		Name:       cluster.GetName(),
+		UID:        types.UID(clusterUID),
+		Controller: func() *bool { b := true; return &b }(),
+	}
+
+	secret.OwnerReferences = []metav1.OwnerReference{ownerRef}
 	return nil
 }
 

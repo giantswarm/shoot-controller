@@ -50,6 +50,7 @@ var _ = Describe("Cluster Controller", func() {
 			Scheme:       scheme.Scheme,
 			ShootVersion: testShootVersion,
 			CatalogName:  testCatalogName,
+			OpenAIAPIKey: "test-api-key-12345",
 		}
 	})
 
@@ -113,6 +114,11 @@ var _ = Describe("Cluster Controller", func() {
 			helmRelease.SetName(testHelmReleaseName)
 			helmRelease.SetNamespace(testOrgNamespace)
 			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, helmRelease))
+
+			openAISecret := &corev1.Secret{}
+			openAISecret.Name = "openai-api-key"
+			openAISecret.Namespace = testOrgNamespace
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, openAISecret))
 		})
 
 		It("should successfully create a HelmRelease when Cluster is created", func() {
@@ -374,9 +380,140 @@ var _ = Describe("Cluster Controller", func() {
 			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, helmRelease)).To(Succeed())
 		})
+
+		It("should create OpenAI API key secret when Cluster is created", func() {
+			// Create Cluster
+			cluster := createTestCluster(testClusterID, testOrgNamespace)
+			Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+
+			// Reconcile
+			req := ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testClusterID,
+					Namespace: testOrgNamespace,
+				},
+			}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify Secret was created
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Name:      "openai-api-key",
+				Namespace: testOrgNamespace,
+			}, secret)).To(Succeed())
+
+			// Verify secret contents
+			Expect(secret.Data).To(HaveKey("OPENAI_API_KEY"))
+			Expect(string(secret.Data["OPENAI_API_KEY"])).To(Equal("test-api-key-12345"))
+
+			// Verify labels
+			labels := secret.Labels
+			Expect(labels["app.kubernetes.io/managed-by"]).To(Equal("shoot-controller"))
+			Expect(labels["giantswarm.io/cluster"]).To(Equal(testClusterID))
+
+			// Verify owner reference
+			Expect(len(secret.OwnerReferences)).To(Equal(1))
+			ownerRef := secret.OwnerReferences[0]
+			Expect(ownerRef.Kind).To(Equal(clusterKind))
+			Expect(ownerRef.Name).To(Equal(testClusterID))
+			Expect(*ownerRef.Controller).To(BeTrue())
+
+			// Cleanup
+			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+		})
+
+		It("should update OpenAI API key secret when it's modified externally", func() {
+			// Create Cluster
+			cluster := createTestCluster(testClusterID, testOrgNamespace)
+			Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+
+			// First reconcile
+			req := ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testClusterID,
+					Namespace: testOrgNamespace,
+				},
+			}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify secret exists
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Name:      "openai-api-key",
+				Namespace: testOrgNamespace,
+			}, secret)).To(Succeed())
+
+			// Modify the secret to simulate external changes
+			secret.Data["OPENAI_API_KEY"] = []byte("modified-key")
+			Expect(k8sClient.Update(ctx, secret)).To(Succeed())
+
+			// Reconcile again
+			_, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify secret was updated back to correct value
+			Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Name:      "openai-api-key",
+				Namespace: testOrgNamespace,
+			}, secret)).To(Succeed())
+			Expect(string(secret.Data["OPENAI_API_KEY"])).To(Equal("test-api-key-12345"))
+
+			// Cleanup
+			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+		})
+
+		It("should create secret in same namespace as Cluster", func() {
+			customNamespace := "org-custom-secret"
+			// Create custom namespace
+			ns := &corev1.Namespace{}
+			ns.Name = customNamespace
+			Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			defer func() {
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, ns))
+			}()
+
+			cluster := createTestCluster(testClusterID, customNamespace)
+			Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+
+			req := ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testClusterID,
+					Namespace: customNamespace,
+				},
+			}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify Secret is in the same namespace as Cluster
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Name:      "openai-api-key",
+				Namespace: customNamespace,
+			}, secret)).To(Succeed())
+
+			Expect(secret.Namespace).To(Equal(customNamespace))
+
+			// Cleanup
+			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+		})
 	})
 
 	Context("Helper functions", func() {
+		BeforeEach(func() {
+			// Create test namespace for helper function tests
+			ns := &corev1.Namespace{}
+			ns.Name = testOrgNamespace
+			err := k8sClient.Get(ctx, client.ObjectKey{Name: testOrgNamespace}, ns)
+			if err != nil {
+				Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			}
+		})
+
 		It("should build HelmRelease with correct structure", func() {
 			cluster := createTestCluster(testClusterID, testOrgNamespace)
 

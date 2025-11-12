@@ -21,6 +21,9 @@
         },
         "shootVersion": {
             "type": "string"
+        },
+        "openaiAPIKey": {
+            "type": "string"
         }
     }
 }
