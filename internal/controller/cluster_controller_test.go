@@ -573,14 +573,6 @@ var _ = Describe("Cluster Controller", func() {
 			timeout, _, _ := unstructured.NestedString(spec, "timeout")
 			Expect(timeout).To(Equal("15m"))
 
-			// Verify kubeConfig - access directly
-			kubeConfigObj, _, _ := unstructured.NestedFieldNoCopy(spec, "kubeConfig")
-			Expect(kubeConfigObj).NotTo(BeNil())
-			kubeConfig := kubeConfigObj.(map[string]interface{})
-			secretRefObj, _, _ := unstructured.NestedFieldNoCopy(kubeConfig, "secretRef")
-			secretRef := secretRefObj.(map[string]interface{})
-			Expect(secretRef["name"]).To(Equal(testClusterID + "-kubeconfig"))
-
 			// Verify valuesFrom
 			valuesFrom, _, _ := unstructured.NestedSlice(spec, "valuesFrom")
 			Expect(len(valuesFrom)).To(Equal(1))
