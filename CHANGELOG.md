@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add a common `HelmRepository` for the default catalog. We were using the default catalog for the reconciled cluster. But when the cluster app is deleted, the `HelmRepository` is also deleted, making `flux` to suspend the `HelmRelease`, leaving leftovers.
+
+### Changed
+
+- Disable controller-runtime cache for `Secret` and `ConfigMap`.
+
 ## [0.3.1] - 2025-11-12
 
 ### Fixed

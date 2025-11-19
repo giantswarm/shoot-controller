@@ -40,7 +40,6 @@ spec:
                   key: openaiAPIKey
           args:
             - --leader-elect
-            - --catalog-name={{ .Values.catalogName }}
             - --shoot-version={{ .Values.shootVersion }}
           securityContext:
             {{- with .Values.securityContext }}

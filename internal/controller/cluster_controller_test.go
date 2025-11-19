@@ -37,7 +37,6 @@ var _ = Describe("Cluster Controller", func() {
 		cancel              context.CancelFunc
 		reconciler          *ClusterReconciler
 		testShootVersion    = "1.0.0"
-		testCatalogName     = "test-catalog"
 		testClusterID       = "test-cluster"
 		testOrgNamespace    = "org-test"
 		testHelmReleaseName = testClusterID + "-shoot"
@@ -49,7 +48,6 @@ var _ = Describe("Cluster Controller", func() {
 			Client:       k8sClient,
 			Scheme:       scheme.Scheme,
 			ShootVersion: testShootVersion,
-			CatalogName:  testCatalogName,
 			OpenAIAPIKey: "test-api-key-12345",
 		}
 	})
@@ -169,7 +167,8 @@ var _ = Describe("Cluster Controller", func() {
 			Expect(found).To(BeTrue())
 			sourceRef := sourceRefObj.(map[string]interface{})
 			Expect(sourceRef["kind"]).To(Equal("HelmRepository"))
-			Expect(sourceRef["name"]).To(Equal(testClusterID + "-" + testCatalogName))
+			Expect(sourceRef["name"]).To(Equal("shoot-controller-default"))
+			Expect(sourceRef["namespace"]).To(Equal("default"))
 
 			// Verify labels
 			labels := helmRelease.GetLabels()
@@ -572,6 +571,11 @@ var _ = Describe("Cluster Controller", func() {
 
 			timeout, _, _ := unstructured.NestedString(spec, "timeout")
 			Expect(timeout).To(Equal("15m"))
+
+			// Verify suspend is set to false
+			suspend, found, _ := unstructured.NestedBool(spec, "suspend")
+			Expect(found).To(BeTrue())
+			Expect(suspend).To(BeFalse())
 
 			// Verify valuesFrom
 			valuesFrom, _, _ := unstructured.NestedSlice(spec, "valuesFrom")

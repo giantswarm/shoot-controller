@@ -2,9 +2,6 @@
     "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
-        "catalogName": {
-            "type": "string"
-        },
         "image": {
             "type": "object",
             "properties": {

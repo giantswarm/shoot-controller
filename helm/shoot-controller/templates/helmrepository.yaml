@@ -1,0 +1,11 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  labels:
+    {{- include "labels.common" . | nindent 4 }}
+  name: {{ include "resource.default.name"  . }}-default
+  namespace: default # Needs to be default because kyverno blocks referencing HelmRepositories on other namespaces than default or the same as the HelmRelease
+spec:
+  interval: 5m
+  provider: generic
+  url: https://giantswarm.github.io/default-catalog
