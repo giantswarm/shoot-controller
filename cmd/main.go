@@ -21,9 +21,11 @@ import (
 	"flag"
 	"os"
 
+	corev1 "k8s.io/api/core/v1"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -60,7 +62,6 @@ func main() {
 	var secureMetrics bool
 	var enableHTTP2 bool
 	var shootVersion string
-	var catalogName string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -80,7 +81,6 @@ func main() {
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	flag.StringVar(&shootVersion, "shoot-version", "", "Version of the shoot chart to deploy (required)")
-	flag.StringVar(&catalogName, "catalog-name", "", "Catalog name for HelmRepository reference (required)")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -90,10 +90,6 @@ func main() {
 	// Validate required flags
 	if shootVersion == "" {
 		setupLog.Error(nil, "shoot-version flag is required")
-		os.Exit(1)
-	}
-	if catalogName == "" {
-		setupLog.Error(nil, "catalog-name flag is required")
 		os.Exit(1)
 	}
 
@@ -174,6 +170,15 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		// We don't want to cache Secrets and ConfigMaps
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -201,7 +206,6 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		ShootVersion: shootVersion,
-		CatalogName:  catalogName,
 		OpenAIAPIKey: openAIAPIKey,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
