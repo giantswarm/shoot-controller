@@ -253,7 +253,7 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 					"kind": "HelmRepository",
 					// The name and namespace depend on the Helm chart deploying this controller
 					"name":      "shoot-controller-default",
-					"namespace": "default",
+					"namespace": "flux-giantswarm",
 				},
 				"version": r.ShootVersion,
 			},
@@ -268,7 +268,6 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 		"serviceAccountName": "automation",
 		"releaseName":        clusterID + "-shoot",
 		"storageNamespace":   orgNamespace,
-		"suspend":            false,
 		"targetNamespace":    orgNamespace,
 		"timeout":            "15m",
 		"upgrade": map[string]interface{}{

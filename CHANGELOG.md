@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add a common `HelmRepository` for the default catalog. We were using the default catalog for the reconciled cluster. But when the cluster app is deleted, the `HelmRepository` is also deleted, making `flux` to suspend the `HelmRelease`, leaving leftovers.
+- Add a common `HelmRepository` for the default catalog. We were using the default catalog included in the reconciled workload cluster helm chart. But when the cluster app is deleted, the `HelmRepository` is also deleted, making `flux` to suspend the `HelmRelease`, leaving leftovers.
 
 ### Changed
 

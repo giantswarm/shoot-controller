@@ -168,7 +168,7 @@ var _ = Describe("Cluster Controller", func() {
 			sourceRef := sourceRefObj.(map[string]interface{})
 			Expect(sourceRef["kind"]).To(Equal("HelmRepository"))
 			Expect(sourceRef["name"]).To(Equal("shoot-controller-default"))
-			Expect(sourceRef["namespace"]).To(Equal("default"))
+			Expect(sourceRef["namespace"]).To(Equal("flux-giantswarm"))
 
 			// Verify labels
 			labels := helmRelease.GetLabels()
@@ -571,11 +571,6 @@ var _ = Describe("Cluster Controller", func() {
 
 			timeout, _, _ := unstructured.NestedString(spec, "timeout")
 			Expect(timeout).To(Equal("15m"))
-
-			// Verify suspend is set to false
-			suspend, found, _ := unstructured.NestedBool(spec, "suspend")
-			Expect(found).To(BeTrue())
-			Expect(suspend).To(BeFalse())
 
 			// Verify valuesFrom
 			valuesFrom, _, _ := unstructured.NestedSlice(spec, "valuesFrom")
