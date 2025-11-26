@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-26
+
 ### Added
 
 - Add a common `HelmRepository` for the default catalog. We were using the default catalog included in the reconciled workload cluster helm chart. But when the cluster app is deleted, the `HelmRepository` is also deleted, making `flux` to suspend the `HelmRelease`, leaving leftovers.
@@ -45,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial implementation.
 
-[Unreleased]: https://github.com/giantswarm/shoot-controller/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/giantswarm/shoot-controller/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/giantswarm/shoot-controller/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/giantswarm/shoot-controller/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/giantswarm/shoot-controller/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/giantswarm/shoot-controller/compare/v0.2.0...v0.2.1
