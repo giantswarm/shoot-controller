@@ -168,7 +168,7 @@ var _ = Describe("Cluster Controller", func() {
 			sourceRef := sourceRefObj.(map[string]interface{})
 			Expect(sourceRef["kind"]).To(Equal("HelmRepository"))
 			Expect(sourceRef["name"]).To(Equal("shoot-controller-default"))
-			Expect(sourceRef["namespace"]).To(Equal("flux-giantswarm"))
+			Expect(sourceRef["namespace"]).To(Equal("default"))
 
 			// Verify labels
 			labels := helmRelease.GetLabels()

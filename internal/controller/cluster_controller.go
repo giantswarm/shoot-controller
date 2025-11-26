@@ -253,7 +253,7 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 					"kind": "HelmRepository",
 					// The name and namespace depend on the Helm chart deploying this controller
 					"name":      "shoot-controller-default",
-					"namespace": "flux-giantswarm",
+					"namespace": "default",
 				},
 				"version": r.ShootVersion,
 			},
