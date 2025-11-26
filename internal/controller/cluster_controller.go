@@ -48,7 +48,6 @@ type ClusterReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	ShootVersion string
-	CatalogName  string
 	OpenAIAPIKey string
 }
 
@@ -252,7 +251,9 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 				"reconcileStrategy": "ChartVersion",
 				"sourceRef": map[string]interface{}{
 					"kind": "HelmRepository",
-					"name": clusterID + "-" + r.CatalogName,
+					// The name and namespace depend on the Helm chart deploying this controller
+					"name":      "shoot-controller-default",
+					"namespace": "default",
 				},
 				"version": r.ShootVersion,
 			},

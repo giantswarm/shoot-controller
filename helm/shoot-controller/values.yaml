@@ -4,8 +4,6 @@ image:
   tag: ""
   pullPolicy: IfNotPresent
 
-# App platform catalog to use when deploying shoot
-catalogName: "default"
 # shoot chart version to deploy
 shootVersion: "1.1.2"
 
