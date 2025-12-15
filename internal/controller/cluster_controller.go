@@ -269,7 +269,7 @@ func (r *ClusterReconciler) helmReleaseName(clusterID string) string {
 
 // ociRepositoryName returns the name for an OCIRepository based on cluster ID
 func (r *ClusterReconciler) ociRepositoryName(clusterID string) string {
-	return clusterID + "-shoot-controller"
+	return clusterID + "-shoot"
 }
 
 // getOCIRepository fetches an OCIRepository resource
@@ -313,8 +313,13 @@ func (r *ClusterReconciler) buildOCIRepository(cluster *unstructured.Unstructure
 
 	// Build spec
 	spec := map[string]interface{}{
-		"interval": "5m",
-		"url":      "oci://gsoci.azurecr.io/charts/giantswarm/shoot-controller",
+		"interval": "1h",
+		"provider": "generic",
+		"ref": map[string]interface{}{
+			"tag": r.ShootVersion,
+		},
+		"timeout": "60s",
+		"url":     "oci://gsoci.azurecr.io/charts/giantswarm/shoot",
 	}
 
 	ociRepository.Object["spec"] = spec

@@ -168,7 +168,7 @@ var _ = Describe("Cluster Controller", func() {
 			Expect(found).To(BeTrue())
 			chartRef := chartRefObj.(map[string]interface{})
 			Expect(chartRef["kind"]).To(Equal("OCIRepository"))
-			Expect(chartRef["name"]).To(Equal(testClusterID + "-shoot-controller"))
+			Expect(chartRef["name"]).To(Equal(testClusterID + "-shoot"))
 			Expect(chartRef["namespace"]).To(Equal(testOrgNamespace))
 
 			// Verify labels
@@ -525,7 +525,7 @@ var _ = Describe("Cluster Controller", func() {
 				Kind:    ociRepositoryKind,
 			})
 			Expect(k8sClient.Get(ctx, client.ObjectKey{
-				Name:      testClusterID + "-shoot-controller",
+				Name:      testClusterID + "-shoot",
 				Namespace: testOrgNamespace,
 			}, ociRepository)).To(Succeed())
 
@@ -534,8 +534,17 @@ var _ = Describe("Cluster Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			spec := specObj.(map[string]interface{})
-			Expect(spec["url"]).To(Equal("oci://gsoci.azurecr.io/charts/giantswarm/shoot-controller"))
-			Expect(spec["interval"]).To(Equal("5m"))
+			Expect(spec["url"]).To(Equal("oci://gsoci.azurecr.io/charts/giantswarm/shoot"))
+			Expect(spec["interval"]).To(Equal("1h"))
+			Expect(spec["provider"]).To(Equal("generic"))
+			Expect(spec["timeout"]).To(Equal("60s"))
+
+			// Verify ref field
+			refObj, found, err := unstructured.NestedFieldNoCopy(spec, "ref")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			ref := refObj.(map[string]interface{})
+			Expect(ref["tag"]).To(Equal(testShootVersion))
 
 			// Verify labels
 			labels := ociRepository.GetLabels()
@@ -590,7 +599,7 @@ var _ = Describe("Cluster Controller", func() {
 				Kind:    ociRepositoryKind,
 			})
 			Expect(k8sClient.Get(ctx, client.ObjectKey{
-				Name:      testClusterID + "-shoot-controller",
+				Name:      testClusterID + "-shoot",
 				Namespace: customNamespace,
 			}, ociRepository)).To(Succeed())
 
