@@ -162,23 +162,14 @@ var _ = Describe("Cluster Controller", func() {
 			Expect(found).To(BeTrue())
 			spec := specObj.(map[string]interface{})
 
-			// Verify chart spec
-			chartSpecObj, found, err := unstructured.NestedFieldNoCopy(spec, "chart", "spec")
+			// Verify chartRef
+			chartRefObj, found, err := unstructured.NestedFieldNoCopy(spec, "chartRef")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			chartSpec := chartSpecObj.(map[string]interface{})
-			Expect(chartSpec["chart"]).To(Equal("shoot"))
-			Expect(chartSpec["version"]).To(Equal(testShootVersion))
-			Expect(chartSpec["reconcileStrategy"]).To(Equal("ChartVersion"))
-
-			// Verify sourceRef
-			sourceRefObj, found, err := unstructured.NestedFieldNoCopy(chartSpec, "sourceRef")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			sourceRef := sourceRefObj.(map[string]interface{})
-			Expect(sourceRef["kind"]).To(Equal("OCIRepository"))
-			Expect(sourceRef["name"]).To(Equal(testClusterID + "-shoot-controller"))
-			Expect(sourceRef["namespace"]).To(Equal(testOrgNamespace))
+			chartRef := chartRefObj.(map[string]interface{})
+			Expect(chartRef["kind"]).To(Equal("OCIRepository"))
+			Expect(chartRef["name"]).To(Equal(testClusterID + "-shoot-controller"))
+			Expect(chartRef["namespace"]).To(Equal(testOrgNamespace))
 
 			// Verify labels
 			labels := helmRelease.GetLabels()

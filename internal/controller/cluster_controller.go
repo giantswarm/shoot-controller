@@ -354,17 +354,10 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 
 	// Build spec
 	spec := map[string]interface{}{
-		"chart": map[string]interface{}{
-			"spec": map[string]interface{}{
-				"chart":             "shoot",
-				"reconcileStrategy": "ChartVersion",
-				"sourceRef": map[string]interface{}{
-					"kind":      "OCIRepository",
-					"name":      r.ociRepositoryName(clusterID),
-					"namespace": orgNamespace,
-				},
-				"version": r.ShootVersion,
-			},
+		"chartRef": map[string]interface{}{
+			"kind":      "OCIRepository",
+			"name":      r.ociRepositoryName(clusterID),
+			"namespace": orgNamespace,
 		},
 		"install": map[string]interface{}{
 			"createNamespace": false,
