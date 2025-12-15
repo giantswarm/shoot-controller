@@ -35,12 +35,15 @@ import (
 )
 
 const (
-	clusterAPIGroup       = "cluster.x-k8s.io"
-	clusterAPIVersion     = "v1beta1"
-	clusterKind           = "Cluster"
-	helmReleaseAPIGroup   = "helm.toolkit.fluxcd.io"
-	helmReleaseAPIVersion = "v2"
-	helmReleaseKind       = "HelmRelease"
+	clusterAPIGroup         = "cluster.x-k8s.io"
+	clusterAPIVersion       = "v1beta1"
+	clusterKind             = "Cluster"
+	helmReleaseAPIGroup     = "helm.toolkit.fluxcd.io"
+	helmReleaseAPIVersion   = "v2"
+	helmReleaseKind         = "HelmRelease"
+	ociRepositoryAPIGroup   = "source.toolkit.fluxcd.io"
+	ociRepositoryAPIVersion = "v1beta2"
+	ociRepositoryKind       = "OCIRepository"
 )
 
 // ClusterReconciler reconciles a Cluster object
@@ -75,6 +78,52 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // reconcileNormal handles the creation or update of a Cluster resource
 func (r *ClusterReconciler) reconcileNormal(ctx context.Context, cluster *unstructured.Unstructured, log logr.Logger) (ctrl.Result, error) {
+	// Build OCIRepository with owner reference
+	ociRepository, err := r.buildOCIRepository(cluster)
+	if err != nil {
+		log.Error(err, "Failed to build OCIRepository",
+			"cluster", cluster.GetName(),
+			"namespace", cluster.GetNamespace())
+		return ctrl.Result{}, fmt.Errorf("failed to build OCIRepository for Cluster %s: %w",
+			cluster.GetName(), err)
+	}
+
+	// Create or update OCIRepository using CreateOrUpdate
+	ociRepoObj := &unstructured.Unstructured{}
+	ociRepoObj.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   ociRepositoryAPIGroup,
+		Version: ociRepositoryAPIVersion,
+		Kind:    ociRepositoryKind,
+	})
+	ociRepoObj.SetName(ociRepository.GetName())
+	ociRepoObj.SetNamespace(ociRepository.GetNamespace())
+
+	operationResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, ociRepoObj, func() error {
+		// Set labels
+		ociRepoObj.SetLabels(ociRepository.GetLabels())
+
+		// Set spec
+		ociRepoObj.Object["spec"] = ociRepository.Object["spec"]
+
+		// Set owner reference for automatic garbage collection
+		return r.setOwnerReference(ociRepoObj, cluster)
+	})
+
+	if err != nil {
+		log.Error(err, "Failed to create or update OCIRepository",
+			"ociRepository", ociRepository.GetName(),
+			"namespace", ociRepository.GetNamespace(),
+			"cluster", cluster.GetName())
+		return ctrl.Result{}, fmt.Errorf("failed to create or update OCIRepository %s/%s for Cluster %s: %w",
+			ociRepository.GetNamespace(), ociRepository.GetName(), cluster.GetName(), err)
+	}
+
+	log.Info("Reconciled OCIRepository",
+		"ociRepository", ociRepository.GetName(),
+		"namespace", ociRepository.GetNamespace(),
+		"cluster", cluster.GetName(),
+		"operation", operationResult)
+
 	// Build HelmRelease with owner reference
 	helmRelease, err := r.buildHelmRelease(cluster)
 	if err != nil {
@@ -146,7 +195,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, cluster *unstru
 		},
 	}
 
-	operationResult, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+	createOrUpdateSecretOperation, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		// Set labels
 		if secret.Labels == nil {
 			secret.Labels = make(map[string]string)
@@ -178,7 +227,7 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, cluster *unstru
 		"secret", secret.Name,
 		"namespace", secret.Namespace,
 		"cluster", cluster.GetName(),
-		"operation", operationResult)
+		"operation", createOrUpdateSecretOperation)
 
 	return ctrl.Result{}, nil
 }
@@ -218,6 +267,66 @@ func (r *ClusterReconciler) helmReleaseName(clusterID string) string {
 	return clusterID + "-shoot"
 }
 
+// ociRepositoryName returns the name for an OCIRepository based on cluster ID
+func (r *ClusterReconciler) ociRepositoryName(clusterID string) string {
+	return clusterID + "-shoot-controller"
+}
+
+// getOCIRepository fetches an OCIRepository resource
+func (r *ClusterReconciler) getOCIRepository(ctx context.Context, name, namespace string) (*unstructured.Unstructured, error) {
+	ociRepository := &unstructured.Unstructured{}
+	ociRepository.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   ociRepositoryAPIGroup,
+		Version: ociRepositoryAPIVersion,
+		Kind:    ociRepositoryKind,
+	})
+	ociRepository.SetName(name)
+	ociRepository.SetNamespace(namespace)
+
+	err := r.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, ociRepository)
+	return ociRepository, err
+}
+
+// buildOCIRepository builds an OCIRepository object from a Cluster
+func (r *ClusterReconciler) buildOCIRepository(cluster *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	clusterID := cluster.GetName()
+	orgNamespace := cluster.GetNamespace()
+
+	ociRepository := &unstructured.Unstructured{}
+	ociRepository.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   ociRepositoryAPIGroup,
+		Version: ociRepositoryAPIVersion,
+		Kind:    ociRepositoryKind,
+	})
+	ociRepository.SetName(r.ociRepositoryName(clusterID))
+	ociRepository.SetNamespace(orgNamespace)
+
+	// Set labels
+	labels := map[string]string{
+		"app.kubernetes.io/name":         "default-catalog",
+		"app.kubernetes.io/instance":     "default-catalog-" + clusterID,
+		"app.kubernetes.io/managed-by":   "shoot-controller",
+		"application.giantswarm.io/team": "phoenix",
+		"giantswarm.io/cluster":          clusterID,
+	}
+	ociRepository.SetLabels(labels)
+
+	// Build spec
+	spec := map[string]interface{}{
+		"interval": "5m",
+		"url":      "oci://gsoci.azurecr.io/charts/giantswarm/shoot-controller",
+	}
+
+	ociRepository.Object["spec"] = spec
+
+	// Set owner reference for automatic garbage collection
+	if err := r.setOwnerReference(ociRepository, cluster); err != nil {
+		return nil, fmt.Errorf("failed to set owner reference on OCIRepository: %w", err)
+	}
+
+	return ociRepository, nil
+}
+
 // buildHelmRelease builds a HelmRelease object from a Cluster
 func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	clusterID := cluster.GetName()
@@ -250,10 +359,9 @@ func (r *ClusterReconciler) buildHelmRelease(cluster *unstructured.Unstructured)
 				"chart":             "shoot",
 				"reconcileStrategy": "ChartVersion",
 				"sourceRef": map[string]interface{}{
-					"kind": "HelmRepository",
-					// The name and namespace depend on the Helm chart deploying this controller
-					"name":      "shoot-controller-default",
-					"namespace": "default",
+					"kind":      "OCIRepository",
+					"name":      r.ociRepositoryName(clusterID),
+					"namespace": orgNamespace,
 				},
 				"version": r.ShootVersion,
 			},
