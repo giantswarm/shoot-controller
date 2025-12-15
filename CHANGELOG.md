@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Manage the `OCIRepository` used as source to deploy the HelmRelease for `shoot`. We do this so that we can rely on kubernetes garbage collection to delete the `OCIRepository` and the `HelmRelease` when the `Cluster` is deleted. When we used a `HelmRepository` in the `default` namespace, the kubernetes garbage collector would not delete it because of it being in a different namespace than the `HelmRelease`.
+
 ## [0.4.0] - 2025-11-26
 
 ### Added
