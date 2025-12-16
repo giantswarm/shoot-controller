@@ -2,21 +2,28 @@ version: 2.1
 orbs:
   architect: giantswarm/architect@6.11.0
 
+jobs:
+  unit-tests:
+    executor: architect/architect
+    steps:
+      - checkout
+      - run:
+          name: Run unit tests
+          command: CGO_ENABLED=0 make build test-unit
+
 workflows:
-  build:
+  package-and-push-chart-on-tag:
     jobs:
-#    - architect/go-build:
-#        name: go-build
-#        binary: shoot-controller
-#        filters:
-#          tags:
-#            only: /^v.*/
+    - unit-tests:
+        filters:
+          tags:
+            only: /^v.*/
 
     - architect/push-to-registries:
         context: architect
         name: push-to-registries
-#        requires:
-#          - go-build
+        requires:
+          - unit-tests
         filters:
           tags:
             only: /^v.*/

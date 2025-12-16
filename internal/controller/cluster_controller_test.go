@@ -117,6 +117,16 @@ var _ = Describe("Cluster Controller", func() {
 			openAISecret.Name = "openai-api-key"
 			openAISecret.Namespace = testOrgNamespace
 			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, openAISecret))
+
+			ociRepository := &unstructured.Unstructured{}
+			ociRepository.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   ociRepositoryAPIGroup,
+				Version: ociRepositoryAPIVersion,
+				Kind:    ociRepositoryKind,
+			})
+			ociRepository.SetName(testClusterID + "-shoot-controller")
+			ociRepository.SetNamespace(testOrgNamespace)
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, ociRepository))
 		})
 
 		It("should successfully create a HelmRelease when Cluster is created", func() {
@@ -152,23 +162,14 @@ var _ = Describe("Cluster Controller", func() {
 			Expect(found).To(BeTrue())
 			spec := specObj.(map[string]interface{})
 
-			// Verify chart spec
-			chartSpecObj, found, err := unstructured.NestedFieldNoCopy(spec, "chart", "spec")
+			// Verify chartRef
+			chartRefObj, found, err := unstructured.NestedFieldNoCopy(spec, "chartRef")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			chartSpec := chartSpecObj.(map[string]interface{})
-			Expect(chartSpec["chart"]).To(Equal("shoot"))
-			Expect(chartSpec["version"]).To(Equal(testShootVersion))
-			Expect(chartSpec["reconcileStrategy"]).To(Equal("ChartVersion"))
-
-			// Verify sourceRef
-			sourceRefObj, found, err := unstructured.NestedFieldNoCopy(chartSpec, "sourceRef")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			sourceRef := sourceRefObj.(map[string]interface{})
-			Expect(sourceRef["kind"]).To(Equal("HelmRepository"))
-			Expect(sourceRef["name"]).To(Equal("shoot-controller-default"))
-			Expect(sourceRef["namespace"]).To(Equal("default"))
+			chartRef := chartRefObj.(map[string]interface{})
+			Expect(chartRef["kind"]).To(Equal("OCIRepository"))
+			Expect(chartRef["name"]).To(Equal(testClusterID + "-shoot"))
+			Expect(chartRef["namespace"]).To(Equal(testOrgNamespace))
 
 			// Verify labels
 			labels := helmRelease.GetLabels()
@@ -499,6 +500,114 @@ var _ = Describe("Cluster Controller", func() {
 			// Cleanup
 			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+		})
+
+		It("should create OCIRepository when Cluster is created", func() {
+			// Create Cluster
+			cluster := createTestCluster(testClusterID, testOrgNamespace)
+			Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+
+			// Reconcile
+			req := ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testClusterID,
+					Namespace: testOrgNamespace,
+				},
+			}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify OCIRepository was created
+			ociRepository := &unstructured.Unstructured{}
+			ociRepository.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   ociRepositoryAPIGroup,
+				Version: ociRepositoryAPIVersion,
+				Kind:    ociRepositoryKind,
+			})
+			Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Name:      testClusterID + "-shoot",
+				Namespace: testOrgNamespace,
+			}, ociRepository)).To(Succeed())
+
+			// Verify OCIRepository spec
+			specObj, found, err := unstructured.NestedFieldNoCopy(ociRepository.Object, "spec")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			spec := specObj.(map[string]interface{})
+			Expect(spec["url"]).To(Equal("oci://gsoci.azurecr.io/charts/giantswarm/shoot"))
+			Expect(spec["interval"]).To(Equal("1h"))
+			Expect(spec["provider"]).To(Equal("generic"))
+			Expect(spec["timeout"]).To(Equal("60s"))
+
+			// Verify ref field
+			refObj, found, err := unstructured.NestedFieldNoCopy(spec, "ref")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			ref := refObj.(map[string]interface{})
+			Expect(ref["tag"]).To(Equal(testShootVersion))
+
+			// Verify labels
+			labels := ociRepository.GetLabels()
+			Expect(labels["app.kubernetes.io/name"]).To(Equal("default-catalog"))
+			Expect(labels["app.kubernetes.io/instance"]).To(Equal("default-catalog-" + testClusterID))
+			Expect(labels["app.kubernetes.io/managed-by"]).To(Equal("shoot-controller"))
+			Expect(labels["application.giantswarm.io/team"]).To(Equal("phoenix"))
+			Expect(labels["giantswarm.io/cluster"]).To(Equal(testClusterID))
+
+			// Verify owner reference
+			ownerRefs, found, err := unstructured.NestedSlice(ociRepository.Object, "metadata", "ownerReferences")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(len(ownerRefs)).To(Equal(1))
+			ownerRef := ownerRefs[0].(map[string]interface{})
+			Expect(ownerRef["kind"]).To(Equal(clusterKind))
+			Expect(ownerRef["name"]).To(Equal(testClusterID))
+			Expect(ownerRef["controller"]).To(Equal(true))
+
+			// Cleanup
+			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, ociRepository)).To(Succeed())
+		})
+
+		It("should create OCIRepository in same namespace as Cluster", func() {
+			customNamespace := "org-custom-oci"
+			// Create custom namespace
+			ns := &corev1.Namespace{}
+			ns.Name = customNamespace
+			Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+			defer func() {
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, ns))
+			}()
+
+			cluster := createTestCluster(testClusterID, customNamespace)
+			Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+
+			req := ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testClusterID,
+					Namespace: customNamespace,
+				},
+			}
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify OCIRepository is in the same namespace as Cluster
+			ociRepository := &unstructured.Unstructured{}
+			ociRepository.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   ociRepositoryAPIGroup,
+				Version: ociRepositoryAPIVersion,
+				Kind:    ociRepositoryKind,
+			})
+			Expect(k8sClient.Get(ctx, client.ObjectKey{
+				Name:      testClusterID + "-shoot",
+				Namespace: customNamespace,
+			}, ociRepository)).To(Succeed())
+
+			Expect(ociRepository.GetNamespace()).To(Equal(customNamespace))
+
+			// Cleanup
+			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, ociRepository)).To(Succeed())
 		})
 	})
 

@@ -3,3 +3,4 @@ vendor
 bin/*
 cover.out
 coverprofile.out
+shoot-controller*
