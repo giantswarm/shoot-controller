@@ -7,7 +7,7 @@ icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.p
 sources:
   - https://github.com/giantswarm/shoot-controller
   - https://github.com/giantswarm/shoot
-version: 0.4.0
+version: 0.5.0
 keywords:
   - ai
   - troubleshooting
