@@ -5,7 +5,7 @@ image:
   pullPolicy: IfNotPresent
 
 # shoot chart version to deploy
-shootVersion: "1.1.2"
+shootVersion: "3.0.0"
 
 # Add seccomp to pod security context
 podSecurityContext:
