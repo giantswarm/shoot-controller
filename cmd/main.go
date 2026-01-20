@@ -93,10 +93,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Read OpenAI API key from environment variable
-	openAIAPIKey := os.Getenv("OPENAI_API_KEY")
-	if openAIAPIKey == "" {
-		setupLog.Error(nil, "OPENAI_API_KEY environment variable is required")
+	// Read Anthropic API key from environment variable
+	anthropicAPIKey := os.Getenv("ANTHROPIC_API_KEY")
+	if anthropicAPIKey == "" {
+		setupLog.Error(nil, "ANTHROPIC_API_KEY environment variable is required")
 		os.Exit(1)
 	}
 
@@ -206,7 +206,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		ShootVersion: shootVersion,
-		OpenAIAPIKey: openAIAPIKey,
+		AnthropicAPIKey: anthropicAPIKey,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)

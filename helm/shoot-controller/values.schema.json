@@ -19,7 +19,7 @@
         "shootVersion": {
             "type": "string"
         },
-        "openaiAPIKey": {
+        "anthropicAPIKey": {
             "type": "string"
         }
     }

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Migrate from OpenAI to Anthropic API key naming. The environment variable is now `ANTHROPIC_API_KEY`, the helm value is `anthropicAPIKey`, and the secret created in cluster namespaces is named `anthropic-api-key` with data key `ANTHROPIC_API_KEY`.
+- Upgrade shoot default version.
+
 ## [0.5.0] - 2025-12-18
 
 ### Changed
