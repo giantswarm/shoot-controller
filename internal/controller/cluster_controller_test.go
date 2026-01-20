@@ -48,7 +48,7 @@ var _ = Describe("Cluster Controller", func() {
 			Client:       k8sClient,
 			Scheme:       scheme.Scheme,
 			ShootVersion: testShootVersion,
-			OpenAIAPIKey: "test-api-key-12345",
+			AnthropicAPIKey: "test-api-key-12345",
 		}
 	})
 
@@ -113,10 +113,10 @@ var _ = Describe("Cluster Controller", func() {
 			helmRelease.SetNamespace(testOrgNamespace)
 			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, helmRelease))
 
-			openAISecret := &corev1.Secret{}
-			openAISecret.Name = "openai-api-key"
-			openAISecret.Namespace = testOrgNamespace
-			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, openAISecret))
+			anthropicSecret := &corev1.Secret{}
+			anthropicSecret.Name = "anthropic-api-key"
+			anthropicSecret.Namespace = testOrgNamespace
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, anthropicSecret))
 
 			ociRepository := &unstructured.Unstructured{}
 			ociRepository.SetGroupVersionKind(schema.GroupVersionKind{
@@ -399,13 +399,13 @@ var _ = Describe("Cluster Controller", func() {
 			// Verify Secret was created
 			secret := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, client.ObjectKey{
-				Name:      "openai-api-key",
+				Name:      "anthropic-api-key",
 				Namespace: testOrgNamespace,
 			}, secret)).To(Succeed())
 
 			// Verify secret contents
-			Expect(secret.Data).To(HaveKey("OPENAI_API_KEY"))
-			Expect(string(secret.Data["OPENAI_API_KEY"])).To(Equal("test-api-key-12345"))
+			Expect(secret.Data).To(HaveKey("ANTHROPIC_API_KEY"))
+			Expect(string(secret.Data["ANTHROPIC_API_KEY"])).To(Equal("test-api-key-12345"))
 
 			// Verify labels
 			labels := secret.Labels
@@ -442,12 +442,12 @@ var _ = Describe("Cluster Controller", func() {
 			// Verify secret exists
 			secret := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, client.ObjectKey{
-				Name:      "openai-api-key",
+				Name:      "anthropic-api-key",
 				Namespace: testOrgNamespace,
 			}, secret)).To(Succeed())
 
 			// Modify the secret to simulate external changes
-			secret.Data["OPENAI_API_KEY"] = []byte("modified-key")
+			secret.Data["ANTHROPIC_API_KEY"] = []byte("modified-key")
 			Expect(k8sClient.Update(ctx, secret)).To(Succeed())
 
 			// Reconcile again
@@ -456,10 +456,10 @@ var _ = Describe("Cluster Controller", func() {
 
 			// Verify secret was updated back to correct value
 			Expect(k8sClient.Get(ctx, client.ObjectKey{
-				Name:      "openai-api-key",
+				Name:      "anthropic-api-key",
 				Namespace: testOrgNamespace,
 			}, secret)).To(Succeed())
-			Expect(string(secret.Data["OPENAI_API_KEY"])).To(Equal("test-api-key-12345"))
+			Expect(string(secret.Data["ANTHROPIC_API_KEY"])).To(Equal("test-api-key-12345"))
 
 			// Cleanup
 			Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
@@ -491,7 +491,7 @@ var _ = Describe("Cluster Controller", func() {
 			// Verify Secret is in the same namespace as Cluster
 			secret := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, client.ObjectKey{
-				Name:      "openai-api-key",
+				Name:      "anthropic-api-key",
 				Namespace: customNamespace,
 			}, secret)).To(Succeed())
 

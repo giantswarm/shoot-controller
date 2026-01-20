@@ -23,5 +23,5 @@ securityContext:
     drop:
       - ALL
 
-# OpenAI API key
-openaiAPIKey: ""
+# Anthropic API key
+anthropicAPIKey: ""

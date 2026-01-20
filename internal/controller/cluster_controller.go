@@ -51,7 +51,7 @@ type ClusterReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	ShootVersion string
-	OpenAIAPIKey string
+	AnthropicAPIKey string
 }
 
 // Reconcile will create the HelmRelease CR to deploy shoot
@@ -187,10 +187,10 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, cluster *unstru
 			"cluster", cluster.GetName())
 	}
 
-	// Create or update OpenAI API key secret using CreateOrUpdate
+	// Create or update Anthropic API key secret using CreateOrUpdate
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "openai-api-key",
+			Name:      "anthropic-api-key",
 			Namespace: cluster.GetNamespace(),
 		},
 	}
@@ -208,22 +208,22 @@ func (r *ClusterReconciler) reconcileNormal(ctx context.Context, cluster *unstru
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
-		secret.Data["OPENAI_API_KEY"] = []byte(r.OpenAIAPIKey)
+		secret.Data["ANTHROPIC_API_KEY"] = []byte(r.AnthropicAPIKey)
 
 		// Set owner reference for automatic garbage collection
 		return r.setSecretOwnerReference(secret, cluster)
 	})
 
 	if err != nil {
-		log.Error(err, "Failed to create or update OpenAI API key secret",
+		log.Error(err, "Failed to create or update Anthropic API key secret",
 			"secret", secret.Name,
 			"namespace", secret.Namespace,
 			"cluster", cluster.GetName())
-		return ctrl.Result{}, fmt.Errorf("failed to create or update OpenAI API key secret %s/%s for Cluster %s: %w",
+		return ctrl.Result{}, fmt.Errorf("failed to create or update Anthropic API key secret %s/%s for Cluster %s: %w",
 			secret.Namespace, secret.Name, cluster.GetName(), err)
 	}
 
-	log.Info("Reconciled OpenAI API key secret",
+	log.Info("Reconciled Anthropic API key secret",
 		"secret", secret.Name,
 		"namespace", secret.Namespace,
 		"cluster", cluster.GetName(),

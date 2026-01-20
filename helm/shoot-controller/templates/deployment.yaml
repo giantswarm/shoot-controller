@@ -33,11 +33,11 @@ spec:
           command:
             - /manager
           env:
-            - name: OPENAI_API_KEY
+            - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "resource.default.name" . }}-openai
-                  key: openaiAPIKey
+                  name: {{ include "resource.default.name" . }}-anthropic
+                  key: anthropicAPIKey
           args:
             - --leader-elect
             - --shoot-version={{ .Values.shootVersion }}
