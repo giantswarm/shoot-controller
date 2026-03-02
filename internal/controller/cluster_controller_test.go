@@ -45,9 +45,9 @@ var _ = Describe("Cluster Controller", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		reconciler = &ClusterReconciler{
-			Client:       k8sClient,
-			Scheme:       scheme.Scheme,
-			ShootVersion: testShootVersion,
+			Client:          k8sClient,
+			Scheme:          scheme.Scheme,
+			ShootVersion:    testShootVersion,
 			AnthropicAPIKey: "test-api-key-12345",
 		}
 	})
