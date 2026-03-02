@@ -75,6 +75,14 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 
 ##@ Build
 
+# Neutralize devctl's build chain from Makefile.gen.go.mk.
+# Make merges prerequisites from all definitions of the same target, so "build"
+# inherits the $(APPLICATION) prerequisite from gen.go.mk even though our recipe
+# wins. These explicit no-op rules prevent the broken "go build ." chain from
+# running (explicit rules take precedence over pattern rules in GNU Make).
+$(APPLICATION)-v$(VERSION)-$(OS)-amd64: ; @:
+$(APPLICATION): ; @:
+
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Rename `Makefile.custom.mk` to `Makefile.project.mk` so it sorts alphabetically after the devctl-generated `Makefile.gen.go.mk`. In GNU Make, when the same target is defined in multiple included files, the last definition's recipe wins. The old name (`custom` < `gen.go`) caused the broken devctl build targets to override the correct kubebuilder ones. Also add explicit no-op rules to neutralize the prerequisite chain that Make merges from `Makefile.gen.go.mk`'s `build` target.
+
 ## [0.6.0] - 2026-01-20
 
 ### Changed
