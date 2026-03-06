@@ -203,9 +203,9 @@ func main() {
 	}
 
 	if err := (&controller.ClusterReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		ShootVersion: shootVersion,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		ShootVersion:    shootVersion,
 		AnthropicAPIKey: anthropicAPIKey,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")

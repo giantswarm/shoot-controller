@@ -49,8 +49,8 @@ const (
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	ShootVersion string
+	Scheme          *runtime.Scheme
+	ShootVersion    string
 	AnthropicAPIKey string
 }
 
